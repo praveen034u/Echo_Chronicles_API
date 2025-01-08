@@ -170,7 +170,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-                "S3Key": "serverless/game-backend/dev/1736321520006-2025-01-08T07:32:00.006Z/game-backend.zip"
+                "S3Key": "serverless/game-backend/dev/1736376900746-2025-01-08T22:55:00.746Z/game-backend.zip"
               },
               "Handler": "index.handler",
               "Runtime": "nodejs18.x",
@@ -193,14 +193,14 @@
               "AppLogGroup"
             ]
           },
-          "AppLambdaVersionigdVbdPLH3uOs9hSDS8enRf3dzLjO808TfRv3qgxk": {
+          "AppLambdaVersion5XNG5hxiuyagqr5uZr7HblD5HLPoGgk1X6h0lhE9s": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "AppLambdaFunction"
               },
-              "CodeSha256": "KL1ns391smNs7eTtPuVVZgoi0vGEbO0yhtn5JLnIcV8="
+              "CodeSha256": "l35h5QCn7sRUtBRsxW1yQZmHkJP4QpRg3NAzFXDt+q4="
             }
           },
           "ApiGatewayRestApi": {
@@ -633,7 +633,7 @@
               "AppLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1736321475671": {
+          "ApiGatewayDeployment1736376686771": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -820,7 +820,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-                "S3Key": "serverless/game-backend/dev/1736321520006-2025-01-08T07:32:00.006Z/custom-resources.zip"
+                "S3Key": "serverless/game-backend/dev/1736376900746-2025-01-08T22:55:00.746Z/custom-resources.zip"
               },
               "FunctionName": "game-backend-dev-custom-resource-apigw-cw-role",
               "Handler": "api-gateway-cloud-watch-role/handler.handler",
@@ -985,7 +985,7 @@
           "AppLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "AppLambdaVersionigdVbdPLH3uOs9hSDS8enRf3dzLjO808TfRv3qgxk"
+              "Ref": "AppLambdaVersion5XNG5hxiuyagqr5uZr7HblD5HLPoGgk1X6h0lhE9s"
             },
             "Export": {
               "Name": "sls-game-backend-dev-AppLambdaFunctionQualifiedArn"
@@ -1154,7 +1154,7 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "AppLambdaVersionigdVbdPLH3uOs9hSDS8enRf3dzLjO808TfRv3qgxk"
+        "versionLogicalId": "AppLambdaVersion5XNG5hxiuyagqr5uZr7HblD5HLPoGgk1X6h0lhE9s"
       }
     },
     "resources": {
@@ -1315,10 +1315,10 @@
     "org": "logicalheads",
     "orgId": null,
     "layers": {},
-    "artifact": "C:\\Source\\gaming app\\simplegamebyAI\\scoregame-api\\.serverless\\game-backend.zip"
+    "artifact": "C:\\Source\\gaming app\\Echo-Chronicles\\Echo_Chronicles_API\\.serverless\\game-backend.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/game-backend/dev/1736321520006-2025-01-08T07:32:00.006Z",
+    "artifactDirectoryName": "serverless/game-backend/dev/1736376900746-2025-01-08T22:55:00.746Z",
     "artifact": "game-backend.zip"
   }
 }
