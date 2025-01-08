@@ -8,7 +8,7 @@ const cors = require('cors');
 
 const app = express();
 
-// Enable CORS for all routes
+// Enable CORS for all the routes
 app.use(cors({
   origin: '*',
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
