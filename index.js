@@ -88,7 +88,7 @@ app.get('/getsessions:username', async (req, res) => {
 
 app.post('/npc-interaction', async (req, res) => {
     try {
-     const { action } = req.body;
+     const { playeraction } = req.body;
 
      console.log('Attempting to invoke Bedrock with params:', {
       modelId: "anthropic.claude-v2",
@@ -96,7 +96,7 @@ app.post('/npc-interaction', async (req, res) => {
     });
 
      // Prepare the prompt for the model
-     const prompt = `\n\nHuman: Generate a response for the action "${action}" in a fantasy RPG setting.\n\nAssistant:`;
+     const prompt = `\n\nHuman: Generate a response for the action "${playeraction}" in a fantasy RPG setting.\n\nAssistant:`;
 
      const params = {
         modelId: "anthropic.claude-v2", // or another model ID you prefer
