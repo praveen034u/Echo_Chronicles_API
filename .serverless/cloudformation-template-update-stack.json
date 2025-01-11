@@ -77,7 +77,7 @@
                   "Resource": [
                     {
                       "Fn::GetAtt": [
-                        "GameScoresTable",
+                        "GameWorldTable",
                         "Arn"
                       ]
                     }
@@ -134,7 +134,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-          "S3Key": "serverless/game-backend/dev/1736376900746-2025-01-08T22:55:00.746Z/game-backend.zip"
+          "S3Key": "serverless/game-backend/dev/1736563613487-2025-01-11T02:46:53.487Z/game-backend.zip"
         },
         "Handler": "index.handler",
         "Runtime": "nodejs18.x",
@@ -143,7 +143,8 @@
         "Timeout": 6,
         "Environment": {
           "Variables": {
-            "DYNAMODB_TABLE": "GameScores"
+            "DYNAMODB_TABLE": "GameWorld",
+            "REST_API_LOGGING": "true"
           }
         },
         "Role": {
@@ -157,14 +158,14 @@
         "AppLogGroup"
       ]
     },
-    "AppLambdaVersion5XNG5hxiuyagqr5uZr7HblD5HLPoGgk1X6h0lhE9s": {
+    "AppLambdaVersion05XgzsI2OyVVcaLjAWSkitF4AjAeFXhR2iyKzicGGM": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AppLambdaFunction"
         },
-        "CodeSha256": "l35h5QCn7sRUtBRsxW1yQZmHkJP4QpRg3NAzFXDt+q4="
+        "CodeSha256": "Erv2zsQa7JN39c7AX1Y5gZBB69iYf6hj5H5fnnrQwAQ="
       }
     },
     "ApiGatewayRestApi": {
@@ -231,6 +232,21 @@
           ]
         },
         "PathPart": "npc-interaction",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceGenerateterrain": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "generateTerrain",
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         }
@@ -380,6 +396,51 @@
         },
         "ResourceId": {
           "Ref": "ApiGatewayResourceNpcDashinteraction"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodGenerateterrainOptions": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "MethodResponses": [
+          {
+            "StatusCode": "200",
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true
+            },
+            "ResponseModels": {}
+          }
+        ],
+        "RequestParameters": {},
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": {
+            "application/json": "{statusCode:200}"
+          },
+          "ContentHandling": "CONVERT_TO_TEXT",
+          "IntegrationResponses": [
+            {
+              "StatusCode": "200",
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Access-Control-Allow-Headers,Access-Control-Allow-Origin,Access-Control-Allow-Methods'",
+                "method.response.header.Access-Control-Allow-Methods": "'POST,OPTIONS'"
+              },
+              "ResponseTemplates": {
+                "application/json": ""
+              }
+            }
+          ]
+        },
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceGenerateterrain"
         },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
@@ -597,7 +658,53 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1736376686771": {
+    "ApiGatewayMethodGenerateterrainPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceGenerateterrain"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "AppLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "AppLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayDeployment1736563590995": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -609,10 +716,12 @@
         "ApiGatewayMethodSavesessionOptions",
         "ApiGatewayMethodGetsessionsUsernameVarOptions",
         "ApiGatewayMethodNpcDashinteractionOptions",
+        "ApiGatewayMethodGenerateterrainOptions",
         "ApiGatewayMethodProxyVarOptions",
         "ApiGatewayMethodSavesessionPost",
         "ApiGatewayMethodGetsessionsUsernameVarGet",
         "ApiGatewayMethodNpcDashinteractionPost",
+        "ApiGatewayMethodGenerateterrainPost",
         "ApiGatewayMethodProxyVarOptions"
       ]
     },
@@ -653,175 +762,19 @@
         }
       }
     },
-    "ApiGatewayLogGroup": {
-      "Type": "AWS::Logs::LogGroup",
-      "Properties": {
-        "LogGroupName": "/aws/api-gateway/game-backend-dev"
-      }
-    },
-    "CustomApiGatewayAccountCloudWatchRole": {
-      "Type": "Custom::ApiGatewayAccountRole",
-      "Version": "1.0",
-      "Properties": {
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomDashresourceDashapigwDashcwDashroleLambdaFunction",
-            "Arn"
-          ]
-        }
-      }
-    },
-    "IamRoleCustomResourcesLambdaExecution": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Service": [
-                  "lambda.amazonaws.com"
-                ]
-              },
-              "Action": [
-                "sts:AssumeRole"
-              ]
-            }
-          ]
-        },
-        "Policies": [
-          {
-            "PolicyName": {
-              "Fn::Join": [
-                "-",
-                [
-                  "dev",
-                  "game-backend",
-                  "custom-resources-lambda"
-                ]
-              ]
-            },
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "logs:CreateLogStream",
-                    "logs:CreateLogGroup",
-                    "logs:TagResource"
-                  ],
-                  "Resource": [
-                    {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/game-backend-dev*:*"
-                    }
-                  ]
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": [
-                    {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/game-backend-dev*:*:*"
-                    }
-                  ]
-                },
-                {
-                  "Effect": "Allow",
-                  "Resource": {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        "arn",
-                        {
-                          "Ref": "AWS::Partition"
-                        },
-                        "iam:",
-                        {
-                          "Ref": "AWS::AccountId"
-                        },
-                        "role/*"
-                      ]
-                    ]
-                  },
-                  "Action": [
-                    "iam:AttachRolePolicy",
-                    "iam:CreateRole",
-                    "iam:ListAttachedRolePolicies",
-                    "iam:PassRole"
-                  ]
-                },
-                {
-                  "Effect": "Allow",
-                  "Resource": {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        "arn",
-                        {
-                          "Ref": "AWS::Partition"
-                        },
-                        "apigateway:*::/account"
-                      ]
-                    ]
-                  },
-                  "Action": [
-                    "apigateway:GET",
-                    "apigateway:PATCH"
-                  ]
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "CustomDashresourceDashapigwDashcwDashroleLambdaFunction": {
-      "Type": "AWS::Lambda::Function",
-      "Properties": {
-        "Code": {
-          "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-          "S3Key": "serverless/game-backend/dev/1736376900746-2025-01-08T22:55:00.746Z/custom-resources.zip"
-        },
-        "FunctionName": "game-backend-dev-custom-resource-apigw-cw-role",
-        "Handler": "api-gateway-cloud-watch-role/handler.handler",
-        "MemorySize": 1024,
-        "Runtime": "nodejs20.x",
-        "Timeout": 180,
-        "Role": {
-          "Fn::GetAtt": [
-            "IamRoleCustomResourcesLambdaExecution",
-            "Arn"
-          ]
-        }
-      },
-      "DependsOn": [
-        "IamRoleCustomResourcesLambdaExecution",
-        "CustomDashresourceDashapigwDashcwDashroleLogGroup"
-      ]
-    },
-    "CustomDashresourceDashapigwDashcwDashroleLogGroup": {
-      "Type": "AWS::Logs::LogGroup",
-      "Properties": {
-        "LogGroupName": "/aws/lambda/game-backend-dev-custom-resource-apigw-cw-role"
-      }
-    },
-    "GameScoresTable": {
+    "GameWorldTable": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
-        "TableName": "GameScores",
+        "TableName": "GameWorld",
         "AttributeDefinitions": [
           {
-            "AttributeName": "username",
+            "AttributeName": "PlayerID",
             "AttributeType": "S"
           }
         ],
         "KeySchema": [
           {
-            "AttributeName": "username",
+            "AttributeName": "PlayerID",
             "KeyType": "HASH"
           }
         ],
@@ -926,7 +879,7 @@
                   "Resource": [
                     {
                       "Fn::GetAtt": [
-                        "GameScoresTable",
+                        "GameWorldTable",
                         "Arn"
                       ]
                     }
@@ -949,7 +902,7 @@
     "AppLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AppLambdaVersion5XNG5hxiuyagqr5uZr7HblD5HLPoGgk1X6h0lhE9s"
+        "Ref": "AppLambdaVersion05XgzsI2OyVVcaLjAWSkitF4AjAeFXhR2iyKzicGGM"
       },
       "Export": {
         "Name": "sls-game-backend-dev-AppLambdaFunctionQualifiedArn"

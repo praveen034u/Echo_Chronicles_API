@@ -12,15 +12,21 @@
     "@aws-sdk/client-bedrock-runtime": "^3.525.0",
     "@aws-sdk/client-dynamodb": "^3.521.0",
     "@aws-sdk/lib-dynamodb": "^3.521.0",
+    "aws-sdk": "^2.1.0",
     "aws-serverless-express": "^3.4.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
-    "express-validator": "^7.2.1"
+    "express": "^4.18.1",
+    "express-validator": "^7.2.1",
+    "simplex-noise": "^4.0.1"
   },
   "description": "",
   "devDependencies": {
-    "serverless-dotenv-plugin": "^6.0.0",
-    "serverless-offline": "^14.4.0"
+    "@babel/core": "^7.x.x",
+    "babel-loader": "^9.x.x",
+    "serverless-webpack": "^5.x.x",
+    "webpack": "^5.x.x",
+    "webpack-node-externals": "^3.x.x",
+    "serverless-plugin-optimize": "^4.2.1-rc.1"
   }
 }

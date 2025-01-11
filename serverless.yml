@@ -8,15 +8,9 @@ provider:
   region: us-east-1
   profile: default
   environment:
-    DYNAMODB_TABLE: GameScores
-  # Add logging configuration
-  logs:
-    restApi:
-      # Enable API Gateway logs
-      accessLogging: true
-      executionLogging: true
-      level: INFO  # Available levels: INFO, ERROR
-      fullExecutionData: true
+    DYNAMODB_TABLE: GameWorld
+    REST_API_LOGGING: true  # Instead of the object
+
   # Add IAM role for CloudWatch Logs
   iam:
     role:
@@ -29,7 +23,7 @@ provider:
             - dynamodb:Scan
             - bedrock:InvokeModel
           Resource: 
-            - Fn::GetAtt: [GameScoresTable, Arn]
+            - Fn::GetAtt: [GameWorldTable, Arn]
         # Add CloudWatch Logs permissions
         - Effect: Allow
           Action:
@@ -47,6 +41,15 @@ provider:
             - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-instant-v1"
 
 custom:
+  apiGatewaySettings:
+    accessLogging: true
+    executionLogging: true
+    level: INFO
+    fullExecutionData: true
+  webpack:
+    webpackConfig: webpack.config.js
+    includeModules: true
+    packager: 'npm'
   allowedHeaders:
     - Content-Type
     - X-Amz-Date
@@ -94,6 +97,16 @@ functions:
               - OPTIONS
             allowCredentials: false
       - http:
+          path: /generateTerrain
+          method: post
+          cors:  
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+            methods:
+              - POST
+              - OPTIONS
+            allowCredentials: false
+      - http:
           path: /{proxy+}
           method: options
           cors:
@@ -110,15 +123,15 @@ functions:
 resources:
   Resources:
     # Your existing DynamoDB table configuration
-    GameScoresTable:
+    GameWorldTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: GameScores
+        TableName: GameWorld
         AttributeDefinitions:
-          - AttributeName: username
+          - AttributeName: PlayerID
             AttributeType: S
         KeySchema:
-          - AttributeName: username
+          - AttributeName: PlayerID
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
     
@@ -181,4 +194,4 @@ resources:
                     - dynamodb:GetItem
                     - dynamodb:Scan
                   Resource:
-                    - Fn::GetAtt: [GameScoresTable, Arn]
+                    - Fn::GetAtt: [GameWorldTable, Arn]

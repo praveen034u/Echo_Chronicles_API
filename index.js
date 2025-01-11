@@ -5,6 +5,9 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { body, validationResult } = require('express-validator');
 const cors = require('cors');
+const AWS = require('aws-sdk');
+const { createNoise2D } = require('simplex-noise');
+const noise2D = createNoise2D();
 
 const app = express();
 
@@ -19,7 +22,6 @@ app.use(cors({
 }));
 
 // Handle preflight requests
-app.options('*', cors());
 
 app.use(express.json());
 
@@ -37,6 +39,56 @@ const validateSession = [
   body('username').isString().notEmpty(),
   body('sessionid').isNumeric(),
 ];
+
+// Function to generate terrain
+function generateTerrain(width, height) {
+    const terrain = [];
+    const scale = 50; // previous value was 50 Adjust this value to change the "zoom level" of the terrain
+        
+       for (let x = 0; x < width; x++) {
+        terrain[x] = [];
+        for (let y = 0; y < height; y++) {
+            const elevation = noise2D(x / scale, y / scale); // Adjusted scale for better variation
+
+            terrain[x][y] = elevation; // Store elevation (-1 to 1)
+        }
+    
+  }
+  return terrain;
+    // for (let y = 0; y < height; y++) {
+    //     terrain[y] = [];
+    //     for (let x = 0; x < width; x++) {
+    //         // Using the new noise2D function
+    //         const value = noise2D(x / scale, y / scale);
+    //         // Normalize the value from [-1, 1] to [0, 1]
+    //         terrain[y][x] = (value + 1) / 2;
+    //     }
+    // }
+}
+
+// Save terrain to DynamoDB
+async function saveTerrainToDynamoDB(playerId, playerX, playerY , terrain) {
+ 
+  const command = new PutCommand({
+    TableName: process.env.DYNAMODB_TABLE,
+    Item: {
+          PlayerID: playerId,
+          PlayerX: playerX,
+          PlayerY: playerY,
+          WorldMap: terrain,
+          Timestamp: new Date().toISOString(),
+    }
+  });
+
+  try {
+      const response = await docClient.send(command);
+      console.log(`Terrain saved for PlayerID: ${playerId}`);
+      return response;
+  } catch (error) {
+      console.error('Error saving to DynamoDB:', error);
+      throw new Error('Failed to save terrain data');
+  }
+}
 
 // Save score endpoint
 app.post('/savesession', validateSession, async (req, res) => {
@@ -57,7 +109,7 @@ app.post('/savesession', validateSession, async (req, res) => {
       }
     });
 
-    await docClient.send(command);
+    const response = await docClient.send(command);
     res.status(201).json({ message: 'Score saved successfully' });
   } catch (error) {
     console.error('Error saving score:', error);
@@ -144,6 +196,62 @@ app.post('/npc-interaction', async (req, res) => {
   });
 }
 });
+
+// Save score endpoint
+app.post('/generateTerrain', async (req, res) => {
+
+   try {
+        // Parse input from event body
+        const { 
+          playerId = `player1`, 
+          playerX=0,
+          playerY=0,
+          width = 50, // previous value was 100
+          height =  50 // previous value was 100 
+         } = req.body;
+
+        // Generate terrain
+        const terrain = generateTerrain(width, height);
+
+        // Convert terrain into map format for exploration
+        const worldMap = terrain.map((row, x) => row.map((tile, y) => ({
+          type: tile < -0.2 ? 'water' : tile > 0.5 ? 'mountain' : 'grass',
+          discovered: false,
+          isLandmark: false, // Ensure landmarks are not randomly applied to all tiles
+        })));
+
+       // Mark specific landmarks
+       markLandmarks(worldMap);
+
+        // Save to DynamoDB
+        await saveTerrainToDynamoDB(playerId, playerX, playerY, worldMap);
+
+       // Return response
+       res.status(200).json({
+        message: playerId || playerX || playerY || width || height ? 'Terrain generated and saved successfully' : 'Terrain generated successfully',
+        playerX:playerX,
+        playerY:playerY,
+        terrain: worldMap
+      });
+    } catch (error) {
+        console.error('Error generating terrain:', error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'Failed to generate terrain' }),
+        };
+    }
+});
+
+// Mark landmarks explicitly to avoid all tiles being treated as landmarks
+function markLandmarks(worldMap) {
+  const height = worldMap.length;
+  const width = worldMap[0].length;
+
+  // Example: Mark a few key locations as landmarks
+  worldMap[0][0].isLandmark = true; // Top-left corner
+  worldMap[Math.floor(height / 2)][Math.floor(width / 2)].isLandmark = true; // Center
+  worldMap[height - 1][width - 1].isLandmark = true; // Bottom-right corner
+};
  
 // Create Lambda handler
 const server = serverless.createServer(app);
