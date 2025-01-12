@@ -72,9 +72,11 @@
                     "dynamodb:PutItem",
                     "dynamodb:GetItem",
                     "dynamodb:Scan",
-                    "bedrock:InvokeModel"
+                    "bedrock:InvokeModel",
+                    "s3:GetObject"
                   ],
                   "Resource": [
+                    "arn:aws:s3:::chronicles-ai-assests/*",
                     {
                       "Fn::GetAtt": [
                         "GameWorldTable",
@@ -134,7 +136,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-          "S3Key": "serverless/game-backend/dev/1736563613487-2025-01-11T02:46:53.487Z/game-backend.zip"
+          "S3Key": "serverless/game-backend/dev/1736679464506-2025-01-12T10:57:44.506Z/game-backend.zip"
         },
         "Handler": "index.handler",
         "Runtime": "nodejs18.x",
@@ -143,6 +145,7 @@
         "Timeout": 6,
         "Environment": {
           "Variables": {
+            "CONFIG_BUCKET_NAME": "chronicles-ai-assests",
             "DYNAMODB_TABLE": "GameWorld",
             "REST_API_LOGGING": "true"
           }
@@ -158,14 +161,14 @@
         "AppLogGroup"
       ]
     },
-    "AppLambdaVersion05XgzsI2OyVVcaLjAWSkitF4AjAeFXhR2iyKzicGGM": {
+    "AppLambdaVersionASeZGDy8zSIWnBl1v9Q4F2GedIchCxqEini3haRufxA": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AppLambdaFunction"
         },
-        "CodeSha256": "Erv2zsQa7JN39c7AX1Y5gZBB69iYf6hj5H5fnnrQwAQ="
+        "CodeSha256": "c7kPku1uhhUiLW2cK4Onc0ChNJquk3K4t0G7f2Nm6qw="
       }
     },
     "ApiGatewayRestApi": {
@@ -704,7 +707,7 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1736563590995": {
+    "ApiGatewayDeployment1736679436478": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -902,7 +905,7 @@
     "AppLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AppLambdaVersion05XgzsI2OyVVcaLjAWSkitF4AjAeFXhR2iyKzicGGM"
+        "Ref": "AppLambdaVersionASeZGDy8zSIWnBl1v9Q4F2GedIchCxqEini3haRufxA"
       },
       "Export": {
         "Name": "sls-game-backend-dev-AppLambdaFunctionQualifiedArn"

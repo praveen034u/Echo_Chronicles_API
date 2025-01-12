@@ -8,6 +8,7 @@ provider:
   region: us-east-1
   profile: default
   environment:
+    CONFIG_BUCKET_NAME: chronicles-ai-assests
     DYNAMODB_TABLE: GameWorld
     REST_API_LOGGING: true  # Instead of the object
 
@@ -22,7 +23,9 @@ provider:
             - dynamodb:GetItem
             - dynamodb:Scan
             - bedrock:InvokeModel
+            - s3:GetObject
           Resource: 
+            - "arn:aws:s3:::chronicles-ai-assests/*"
             - Fn::GetAtt: [GameWorldTable, Arn]
         # Add CloudWatch Logs permissions
         - Effect: Allow

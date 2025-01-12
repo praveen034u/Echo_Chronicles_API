@@ -1,0 +1,49 @@
+{
+    "message": {
+        "mapSize": {
+            "width": 20,
+            "height": 20
+        },
+        "terrain": [
+            {
+                "type": "desert",
+                "percent": 50
+            },
+            {
+                "type": "ruins",
+                "percent": 20
+            },
+            {
+                "type": "scrublands",
+                "percent": 20
+            },
+            {
+                "type": "water",
+                "percent": 10
+            }
+        ],
+        "features": [
+            {
+                "type": "oasis",
+                "count": 2,
+                "near": "water"
+            },
+            {
+                "type": "city",
+                "count": 1,
+                "location": [
+                    10,
+                    10
+                ]
+            },
+            {
+                "type": "cache",
+                "count": 3,
+                "in": [
+                    "ruins",
+                    "scrublands"
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,64 @@
+{
+    "message": {
+        "mapSize": [
+            20,
+            20
+        ],
+        "terrain": {
+            "crateredLandscape": {
+                "coverage": 40,
+                "features": []
+            },
+            "alienFlora": {
+                "coverage": 30,
+                "features": []
+            },
+            "rockyTerrain": {
+                "coverage": 20,
+                "features": []
+            },
+            "waterReservoirs": {
+                "coverage": 10,
+                "features": []
+            }
+        },
+        "landmarks": {
+            "advancedAlienStructures": [
+                {
+                    "type": "researchFacility",
+                    "location": [
+                        5,
+                        8
+                    ]
+                },
+                {
+                    "type": "alienRuins",
+                    "location": [
+                        15,
+                        3
+                    ]
+                }
+            ],
+            "crashSites": [
+                {
+                    "location": [
+                        10,
+                        12
+                    ]
+                },
+                {
+                    "location": [
+                        3,
+                        17
+                    ]
+                }
+            ],
+            "hiddenEnergyCore": {
+                "location": [
+                    14,
+                    5
+                ]
+            }
+        }
+    }
+}
