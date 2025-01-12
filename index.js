@@ -42,7 +42,7 @@ const validateSession = [
 ];
 
 // Function to generate terrain with features and landmarks
-function generateTerrain(width, height, landmarkPercentage = 0.05) {
+function generateTerrainByAI(width, height, landmarkPercentage = 0.05) {
     const terrain = [];
     const totalLandmarks = Math.floor(width * height * landmarkPercentage);
     let landmarksCount = 0;
@@ -142,8 +142,20 @@ async function saveTerrainToDynamoDB(playerId, playerX, playerY , terrain) {
 }
 
 // geenrtate terrain config
-async function generateTerrainConfig(configType, prompt) {
+async function generateTerrainConfigByAI(imaginaryWorld, prompt) {
+  if(prompt == null)
+  {
+  const predefinedPrompts = {
+    Fantasy: "Generate a structured JSON for a fantasy terrain map:- Map size: 20x20 - Grass: 40% - Forest: 30% - Mountain: 20% - Water: 10% Include:- 3 villages spread across the grasslands and forests.- 2 hidden dungeons located in the mountains.- 1 ancient ruin near a water body.- Ensure landmarks are evenly distributed across the map.",
+    SciFi: "Generate a structured JSON for a sci-fi terrain map:- Map size: 20x20- Cratered Landscapes: 40%- Alien Flora: 30%- Rocky Terrain: 20%- Water Reservoirs: 10%Include:- advanced alien structures (e.g., research facilities or ruins).- 2 crash sites for alien spaceships.- 1 hidden energy core in a rocky area.Ensure landmarks align with a futuristic, alien aesthetic.",
+    PostApocalyptic: "Generate a structured JSON for a post-apocalyptic terrain map:- Map size: 20x20- Desert: 50%- Ruins: 20%- Scrublands: 20%- Water: 10%Include:- 2 scattered oases located near water sources.- 1 ruined city in the middle of the map.- 3 supply caches located in the ruins and scrublands.Ensure a feeling of scarcity and survival.",
+  };
+
+   prompt = predefinedPrompts[imaginaryWorld] || "Generate a structured JSON for a fantasy terrain map:- Map size: 20x20 - Grass: 40% - Forest: 30% - Mountain: 20% - Water: 10% Include:- 3 villages spread across the grasslands and forests.- 2 hidden dungeons located in the mountains.- 1 ancient ruin near a water body.- Ensure landmarks are evenly distributed across the map.";
+  }
+
   let jsonData = null;
+  prompt = `\n\nHuman: ${prompt}\n\nAssistant:`;
   try {
     console.log('Attempting to invoke Bedrock with params:', {
      modelId: "anthropic.claude-v2",
@@ -209,9 +221,10 @@ async function generateTerrainConfig(configType, prompt) {
     }
     else
     {
-        console.error(`'Failed to process Bedrock response, instead of error, just send the static terrain config response based on request type`)
-    }
-    return jsonData;
+        console.error(`'Failed to process Bedrock json response, instead of error, just send the static terrain config response based on request type`);
+        throw new Error('Failed to process Bedrock json response');
+      }
+    
   }
   else {
     console.error('Response body is empty or undefined', {
@@ -224,19 +237,62 @@ async function generateTerrainConfig(configType, prompt) {
   error: error.message
  });
 }
+finally {
+  if(jsonData == null || jsonData.message == null || Object.keys(jsonData.message).length === 0)
+  {
+//default terrain config
+jsonData = {
+  "message": {
+        "mapSize": [
+            20,
+            20
+        ],
+  "terrain": {
+      "crateredLandscape": {
+          "coverage": 40,
+          "features": []
+      },
+      "alienFlora": {
+          "coverage": 30,
+          "features": []
+      },
+      "rockyTerrain": {
+          "coverage": 20,
+          "features": []
+      },
+      "waterReservoirs": {
+          "coverage": 10,
+          "features": []
+      }
+  },
+  "landmarks": {
+      "advancedAlienStructures": [
+          {
+              "type": "researchFacility",
+              "location": [5, 8]
+          },
+          {
+              "type": "alienRuins",
+              "location": [15, 3]
+          }
+      ],
+      "crashSites": [
+          {
+              "location": [10, 12]
+          },
+          {
+              "location": [3, 17]
+          }
+      ],
+      "hiddenEnergyCore": {
+          "location": [14, 5]
+      }
+   }
+  }
+   };
+  }
 }
-
-// Function to read terrain config from JSON file
-async function readTerrainConfigFile(configType) {
-    // Use S3 in Lambda environment
-    const s3 = new AWS.S3();
-    const params = {
-        Bucket: "chronicles-ai-assests",
-        Key: `config/${configType}.json`
-    };
-    
-    const response = await s3.getObject(params).promise(); 
-    return JSON.parse(response.Body.toString('utf-8'));
+return jsonData;
 }
 
 // Save score endpoint
@@ -289,16 +345,18 @@ app.get('/getsessions:username', async (req, res) => {
 });
 
 app.post('/npc-interaction', async (req, res) => {
-  
-  const { configType, prompt } = req.body;
-  try {
-    console.log('Attempting to invoke Bedrock with params:', {
-     modelId: "anthropic.claude-v2",
-     region: process.env.AWS_REGION || "us-east-1"
-   });
+    try {
+     const { playeraction } = req.body;
 
-    // Prepare the prompt for the model
-       const params = {
+     console.log('Attempting to invoke Bedrock with params:', {
+      modelId: "anthropic.claude-v2",
+      region: process.env.AWS_REGION || "us-east-1"
+    });
+
+     // Prepare the prompt for the model
+     const prompt = `\n\nHuman: Generate a response for the action "${playeraction}" in a fantasy RPG setting.\n\nAssistant:`;
+
+     const params = {
         modelId: "anthropic.claude-v2", // or another model ID you prefer
         contentType: "application/json",
         accept: "application/json",
@@ -310,196 +368,52 @@ app.post('/npc-interaction', async (req, res) => {
         })
       };
 
-   console.log('Invoking Bedrock with params:', JSON.stringify(params, null, 2));
+    console.log('Invoking Bedrock with params:', JSON.stringify(params, null, 2));
 
-     // Call Bedrock
-     const command = new InvokeModelCommand(params);
-     const response = await bedrockClient.send(command);
-     console.log('Bedrock response received');
-      if(response.body)
-      {
-       // Parse the response
-       const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-      
-       // For Claude model, the response is in the completion property
-       const messageText = responseBody.completion || responseBody.text || '';
- 
-       const jsonBlockPatterns = [
-        /```json\n([\s\S]*?)\n```/, // Standard JSON block
-        /```\n([\s\S]*?)\n```/,     // Generic code block
-        /{[\s\S]*}/                 // Just find JSON object
-    ];
+    // Call Bedrock
+    const command = new InvokeModelCommand(params);
 
-    let jsonData = null;
-    for (const pattern of jsonBlockPatterns) {
-        const match = messageText.match(pattern);
-        if (match && match[1]) {
-            try {
-                jsonData = JSON.parse(match[1].trim());
-                console.log('Successfully parsed JSON using pattern:', pattern);
-                break;
-            } catch (e) {
-                console.log(`Failed to parse with pattern ${pattern}:`, e.message);
-                continue;
-            }
-        }
-    }
+    try {
+    const response = await bedrockClient.send(command);
+    console.log('Bedrock response received');
 
-    if (!jsonData) {
-        // If no JSON found, try to extract the entire response
-        const possibleJson = messageText.trim();
-        try {
-            jsonData = JSON.parse(possibleJson);
-        } catch (e) {
-            throw new Error('Could not find valid JSON in response');
-        }
-    }
-    else
-    {
-        console.error(`'Failed to process Bedrock response, instead of error, just send the static terrain config response based on request type`);
-        // try
-        //   {
-        //   //instead of error, just send the static terrain config response based on request type
-        //   jsonData=readTerrainConfigFile(configType);
-        // }
-        // catch (error) {
-        //   console.error('Error reading terrain config file:', error);
-        //   res.status(500).json({ error: 'Failed to read terrain config file' });
-        // }
-    }
+    // Parse the response
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
     res.status(200).json({
-      message: jsonData
+      message: responseBody.completion || responseBody.text
     });
   }
-  else {
-    console.error('Response body is empty or undefined', {
-      error: error.message
+  catch (bedrockError) {
+    console.error('Bedrock Error:', {
+      error: bedrockError,
+      errorMessage: bedrockError.message,
+      errorStack: bedrockError.stack,
+      errorType: bedrockError.$metadata
     });
-    throw new Error('Failed to process Bedrock response');
+    throw bedrockError;
   }
- } catch (error) {
- console.error('Error in encountered while fetching date from bedrock AI model:', {
-  error: error.message
- });
- res.status(500).json({ error: 'Error in encountered while fetching date from bedrock AI model' });
+  } catch (error) {
+  console.error('Error in NPC interaction:', error);
+  res.status(500).json({ 
+    error: 'Failed to process NPC interaction',
+    details: error.message,
+    type: error.$metadata?.httpStatusCode ? 'Bedrock Error' : 'General Error'
+  });
 }
 });
 
-
-// app.post('/npc-interaction', async (req, res) => {
-//     try {
-//      const { playeraction } = req.body;
-
-//      console.log('Attempting to invoke Bedrock with params:', {
-//       modelId: "anthropic.claude-v2",
-//       region: process.env.AWS_REGION || "us-east-1"
-//     });
-
-//      // Prepare the prompt for the model
-//      const prompt = `\n\nHuman: Generate a response for the action "${playeraction}" in a fantasy RPG setting.\n\nAssistant:`;
-
-//      const params = {
-//         modelId: "anthropic.claude-v2", // or another model ID you prefer
-//         contentType: "application/json",
-//         accept: "application/json",
-//         body: JSON.stringify({
-//         prompt: prompt,
-//         max_tokens_to_sample: 300,
-//         temperature: 0.7,
-//         top_p: 0.9,
-//         })
-//       };
-
-//     console.log('Invoking Bedrock with params:', JSON.stringify(params, null, 2));
-
-//     // Call Bedrock
-//     const command = new InvokeModelCommand(params);
-
-//     try {
-//     const response = await bedrockClient.send(command);
-//     console.log('Bedrock response received');
-
-//     // Parse the response
-//     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-
-//     res.status(200).json({
-//       message: responseBody.completion || responseBody.text
-//     });
-//   }
-//   catch (bedrockError) {
-//     console.error('Bedrock Error:', {
-//       error: bedrockError,
-//       errorMessage: bedrockError.message,
-//       errorStack: bedrockError.stack,
-//       errorType: bedrockError.$metadata
-//     });
-//     throw bedrockError;
-//   }
-//   } catch (error) {
-//   console.error('Error in NPC interaction:', error);
-//   res.status(500).json({ 
-//     error: 'Failed to process NPC interaction',
-//     details: error.message,
-//     type: error.$metadata?.httpStatusCode ? 'Bedrock Error' : 'General Error'
-//   });
-// }
-// });
-
 app.post('/generateTerrain', async (req, res) => {
 
-    const { playerId= "praveen", width = 50, height = 50, landmarkPercentage = 0.05, configType, prompt } = req.body;
+    const { playerId= "praveen", width = 50, height = 50, playerX=0, playerY=0, landmarkPercentage = 0.05, prompt=null,imaginaryWorld } = req.body;
+    // Read terrain configuration from Bedrock AI
+    const terrainConfig = await generateTerrainConfigByAI(imaginaryWorld, prompt); 
+       
+    // Generate terrain
+    const terrain = await generateDynamicTerrain(width, height, terrainConfig.message, landmarkPercentage)
 
-    const terrainConfig = {
-    "message": {
-        "mapSize": [20, 20],
-        "terrain": {
-            "crateredLandscape": {
-                "coverage": 40,
-                "features": []
-            },
-            "alienFlora": {
-                "coverage": 30,
-                "features": []
-            },
-            "rockyTerrain": {
-                "coverage": 20,
-                "features": []
-            },
-            "waterReservoirs": {
-                "coverage": 10,
-                "features": []
-            }
-        },
-        "landmarks": {
-            "advancedAlienStructures": [
-                {
-                    "type": "researchFacility",
-                    "location": [5, 8]
-                },
-                {
-                    "type": "alienRuins",
-                    "location": [15, 3]
-                }
-            ],
-            "crashSites": [
-                {
-                    "location": [10, 12]
-                },
-                {
-                    "location": [3, 17]
-                }
-            ],
-            "hiddenEnergyCore": {
-                "location": [14, 5]
-            }
-        }
-    }
-}    
-    // // Generate terrain
-    const terrain = await generateTerrainFromConfig(width, height, terrainConfig.message)
-
-    // // Save to DynamoDB
-    // await saveTerrainToDynamoDB(playerId, playerX, playerY, terrain);
+    // Save to DynamoDB
+    await saveTerrainToDynamoDB(playerId, playerX, playerY, terrain);
 
    // Return response
    res.status(200).json({
@@ -510,7 +424,7 @@ app.post('/generateTerrain', async (req, res) => {
 });
 
 // Generate Terrain Based on Terrain Configuration from Bedrock
-async function generateTerrainFromConfig(width, height, terrainConfig) {
+async function generateDynamicTerrain(width, height, terrainConfig) {
   const terrain = Array.from({ length: height }, () => Array.from({ length: width }, () => null));
   const terrainTypes = Object.keys(terrainConfig.terrain); // ['grass', 'forest', 'mountain', 'water']
 

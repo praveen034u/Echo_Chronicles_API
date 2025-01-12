@@ -136,7 +136,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-          "S3Key": "serverless/game-backend/dev/1736679464506-2025-01-12T10:57:44.506Z/game-backend.zip"
+          "S3Key": "serverless/game-backend/dev/1736685367697-2025-01-12T12:36:07.697Z/game-backend.zip"
         },
         "Handler": "index.handler",
         "Runtime": "nodejs18.x",
@@ -161,14 +161,14 @@
         "AppLogGroup"
       ]
     },
-    "AppLambdaVersionASeZGDy8zSIWnBl1v9Q4F2GedIchCxqEini3haRufxA": {
+    "AppLambdaVersion3wQHxK6At60OgeDIWh0pm2TKsEHYYyZ8OUCnaBOnE": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AppLambdaFunction"
         },
-        "CodeSha256": "c7kPku1uhhUiLW2cK4Onc0ChNJquk3K4t0G7f2Nm6qw="
+        "CodeSha256": "wQs31FKCsGvJ+7kRVH5rq1oWYcUYFcwSp+UwrScEWyM="
       }
     },
     "ApiGatewayRestApi": {
@@ -707,7 +707,7 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1736679436478": {
+    "ApiGatewayDeployment1736685343523": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -905,7 +905,7 @@
     "AppLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AppLambdaVersionASeZGDy8zSIWnBl1v9Q4F2GedIchCxqEini3haRufxA"
+        "Ref": "AppLambdaVersion3wQHxK6At60OgeDIWh0pm2TKsEHYYyZ8OUCnaBOnE"
       },
       "Export": {
         "Name": "sls-game-backend-dev-AppLambdaFunctionQualifiedArn"
