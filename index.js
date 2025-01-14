@@ -2,7 +2,7 @@ const express = require('express');
 const serverless = require('aws-serverless-express');
 const { BedrockRuntimeClient, InvokeModelCommand } = require("@aws-sdk/client-bedrock-runtime");
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const { body, validationResult } = require('express-validator');
 const cors = require('cors');
 const AWS = require('aws-sdk');
@@ -118,22 +118,26 @@ function enforceKeyLandmarks(terrain, width, height) {
 }
 
 // Save terrain to DynamoDB
-async function saveTerrainToDynamoDB(playerId, playerX, playerY , terrain) {
+async function saveTerrainToDynamoDB(playerId, player, sessionId, terrain) {
  
+  // Ensure the data is in a DynamoDB-compatible format
+  const sanitizedPlayer = JSON.parse(JSON.stringify(player));
+  const sanitizedTerrain = JSON.parse(JSON.stringify(terrain));
+
   const command = new PutCommand({
     TableName: process.env.DYNAMODB_TABLE,
     Item: {
+          SessionID: sessionId,
           PlayerID: playerId,
-          PlayerX: playerX,
-          PlayerY: playerY,
-          WorldMap: terrain,
+          PlayerData: sanitizedPlayer,
+          WorldMap: sanitizedTerrain,
           Timestamp: new Date().toISOString(),
     }
   });
 
   try {
       const response = await docClient.send(command);
-      console.log(`Terrain saved for PlayerID: ${playerId}`);
+      console.log(`Terrain saved for PlayerID: ${playerId} and sessionID: ${sessionId}`);
       return response;
   } catch (error) {
       console.error('Error saving to DynamoDB:', error);
@@ -295,45 +299,24 @@ jsonData = {
 return jsonData;
 }
 
-// Save score endpoint
-app.post('/savesession', validateSession, async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
+// Get user get saved terrain from previous sessions
+app.post('/getSavedTerrain', async (req, res) => {
   try {
-    const { username, sessionid } = req.body;
-    
-    const command = new PutCommand({
+
+    const { sessionId, playerId} = req.body;
+    const params = {
       TableName: process.env.DYNAMODB_TABLE,
-      Item: {
-        username,
-        sessionid: Number(sessionid),
-        timestamp: new Date().toISOString()
-      }
-    });
+      KeyConditionExpression: "SessionId = :sessionId",
+      FilterExpression: "PlayerId = :playerId",
+      ExpressionAttributeValues: {
+        ":sessionId": sessionId, // Replace with actual value
+        ":playerId": playerId // Replace with actual value
+      },
+    };
+  
+      const command = new QueryCommand(params);
+      const response = await client.send(command);
 
-    const response = await docClient.send(command);
-    res.status(201).json({ message: 'Score saved successfully' });
-  } catch (error) {
-    console.error('Error saving score:', error);
-    res.status(500).json({ error: 'Failed to save score' });
-  }
-});
-
-
-// Get user getsessions
-app.get('/getsessions:username', async (req, res) => {
-  try {
-    const command = new GetCommand({
-      TableName: process.env.DYNAMODB_TABLE,
-      Key: {
-        username: req.params.username
-      }
-    });
-
-    const response = await docClient.send(command);
     if (!response.Item) {
       return res.status(404).json({ message: 'Session not found' });
     }
@@ -405,7 +388,23 @@ app.post('/npc-interaction', async (req, res) => {
 
 app.post('/generateTerrain', async (req, res) => {
 
-    const { playerId= "praveen", width = 50, height = 50, playerX=0, playerY=0, landmarkPercentage = 0.05, prompt=null,imaginaryWorld } = req.body;
+  const { 
+    player: {
+      name = `player123`, 
+      activeQuests = [],
+      inventory = [],
+      position = { x: 0, y: 0 },
+      experience = 0,
+      gold = 0
+    },
+    sessionId = 0,
+    width = 50, // previous value was 100
+    height =  50, // previous value was 100 
+    landmarkPercentage = 0.05,
+    imaginaryWorld = 'Fantasy',
+    prompt = null
+   } = req.body;
+   
     // Read terrain configuration from Bedrock AI
     const terrainConfig = await generateTerrainConfigByAI(imaginaryWorld, prompt); 
        
@@ -413,11 +412,12 @@ app.post('/generateTerrain', async (req, res) => {
     const terrain = await generateDynamicTerrain(width, height, terrainConfig.message, landmarkPercentage)
 
     // Save to DynamoDB
-    await saveTerrainToDynamoDB(playerId, playerX, playerY, terrain);
+    const player = req.body.player;
+    await saveTerrainToDynamoDB(player.name, player, sessionId, terrain);
 
    // Return response
    res.status(200).json({
-    message: playerId || width || height ? 'Terrain generated and saved successfully' : 'Terrain generated successfully',
+    message: player.name || width || height ? 'Terrain generated and saved successfully' : 'Terrain generated successfully',
     terrain: terrain
   });
 
@@ -531,115 +531,130 @@ async function getRandomTerrainType(typeCounts) {
   return selectedType;
 }
 
+
+
+
 // Tile-Based Quest Assignment with Multiple Criteria
 async function assignQuestsToTiles(worldMap) {
-    const quests = [];
+  const quests = [];
 
-    worldMap.forEach((row, x) => {
-        row.forEach((tile, y) => {
-            // Assign quests based on specific criteria
+  for (const [x, row] of worldMap.entries()) {
+    for (const [y, tile] of row.entries()) {
+      // Assign quests based on specific criteria
+     
+      let calcX = x;
+      if (calcX <= 0) {
+        calcX += 25;
+      }else if (calcX >= 49) {
+        calcX -= 25;
+      }
+      let calcY= y;
+      if (calcY <= 0) {
+        calcY += 25;
+      }else if (calcY >= 49) {
+        calcY -= 25;
+      }
+      
+      // Criterion 1: If the tile has a merchant
+      if (tile.hasMerchant) {
+        const quest = {
+          description: `Help the merchant at (${calcX}, ${calcY}) deliver goods to a nearby village.`,
+          location: { calcX, calcY },
+          type: 'delivery',
+          rewards: { experience: 100, gold: 50 },
+        };
+        tile.quest = quest; // Bind quest to the tile
+        tile.hasQuest = true; // Mark tile as having a quest
+        quests.push(quest);
+      }
 
-            // Criterion 1: If the tile has a merchant
-            if (tile.hasMerchant) {
-                const quest = {
-                    description: `Help the merchant at (${x}, ${y}) deliver goods to a nearby village.`,
-                    location: { x, y },
-                    type: 'delivery',
-                    rewards: { experience: 100, gold: 50 },
-                };
-                tile.quest = quest; // Bind quest to the tile
-                tile.hasQuest = true; // Mark tile as having a quest
-                quests.push(quest);
-            }
+      // Criterion 2: If the tile is a cave landmark
+      else if (tile.isLandmark && tile.landmarkType === 'cave') {
+        const quest = {
+          description: `Explore the cave at (${calcX}, ${calcY}) and retrieve the hidden treasure.`,
+          location: { calcX, calcY },
+          type: 'exploration',
+          rewards: { experience: 150, items: ['Rare Gem'] },
+        };
+        tile.quest = quest; // Bind quest to the tile
+        tile.hasQuest = true; // Mark tile as having a quest
+        quests.push(quest);
+      }
 
-            // Criterion 2: If the tile is a cave landmark
-            else if (tile.isLandmark && tile.landmarkType === 'cave') {
-                const quest = {
-                    description: `Explore the cave at (${x}, ${y}) and retrieve the hidden treasure.`,
-                    location: { x, y },
-                    type: 'exploration',
-                    rewards: { experience: 150, items: ['Rare Gem'] },
-                };
-                tile.quest = quest; // Bind quest to the tile
-                tile.hasQuest = true; // Mark tile as having a quest
-                quests.push(quest);
-            }
+      // Criterion 3: Randomly assign quests to forest tiles
+      else if (tile.type === 'forest' && Math.random() < 0.1) { // 10% chance
+        const quest = {
+          description: `Collect medicinal herbs from the forest at (${calcX}, ${calcY}).`,
+          location: { calcX, calcY },
+          type: 'gathering',
+          rewards: { experience: 75, items: ['Healing Potion'] },
+        };
+        tile.quest = quest; // Bind quest to the tile
+        tile.hasQuest = true; // Mark tile as having a quest
+        quests.push(quest);
+      }
 
-            // Criterion 3: Randomly assign quests to forest tiles
-            else if (tile.type === 'forest' && Math.random() < 0.1) { // 10% chance
-                const quest = {
-                    description: `Collect medicinal herbs from the forest at (${x}, ${y}).`,
-                    location: { x, y },
-                    type: 'gathering',
-                    rewards: { experience: 75, items: ['Healing Potion'] },
-                };
-                tile.quest = quest; // Bind quest to the tile
-                tile.hasQuest = true; // Mark tile as having a quest
-                quests.push(quest);
-            }
+      // Criterion 4: If the tile is near water and not a landmark
+      else if (tile.type === 'grass' && isNearWater(worldMap, x, y)) {
+        const quest = {
+          description: `Search the area at (${calcX}, ${calcY}) for lost fishing equipment.`,
+          location: { calcX, calcY },
+          type: 'search',
+          rewards: { experience: 50, items: ['Fishing Rod'] },
+        };
+        tile.quest = quest; // Bind quest to the tile
+        tile.hasQuest = true; // Mark tile as having a quest
+        quests.push(quest);
+      }
+    }
+  }
 
-            // Criterion 4: If the tile is near water and not a landmark
-            else if (tile.type === 'grass' && isNearWater(worldMap, x, y)) {
-                const quest = {
-                    description: `Search the area at (${x}, ${y}) for lost fishing equipment.`,
-                    location: { x, y },
-                    type: 'search',
-                    rewards: { experience: 50, items: ['Fishing Rod'] },
-                };
-                tile.quest = quest; // Bind quest to the tile
-                tile.hasQuest = true; // Mark tile as having a quest
-                quests.push(quest);
-            }
-        });
-    });
-
-    return quests;
+  return quests;
 }
 
 // Helper function to check if a tile is near water
 function isNearWater(worldMap, x, y) {
   const directions = [
-      [-1, 0], [1, 0], [0, -1], [0, 1], // Cardinal directions
-      [-1, -1], [-1, 1], [1, -1], [1, 1], // Diagonal directions
-  ];
+    [-1, 0], [1, 0], [0, -1], [0, 1], // Cardinal directions
+    [-1, -1], [-1, 1], [1, -1], [1, 1], // Diagonal directions
+];
 
-  for (const [dx, dy] of directions) {
-      const nx = x + dx;
-      const ny = y + dy;
-      if (worldMap[nx] && worldMap[nx][ny] && worldMap[nx][ny].type === 'water') {
-          return true;
-      }
-  }
-
-  return false;
+for (const [dx, dy] of directions) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (worldMap[nx] && worldMap[nx][ny] && worldMap[nx][ny].type === 'water') {
+        return true;
+    }
 }
 
-//Save score endpoint
-app.post('/generateTerrain', async (req, res) => {
+return false;
+}
+
+//generate save Terrain
+app.post('/saveTerrain', async (req, res) => {
 
    try {
-        // Parse input from event body
-        const { 
-          playerId = `player1`, 
-          playerX=0,
-          playerY=0,
-          width = 50, // previous value was 100
-          height =  50, // previous value was 100 
-          landmarkPercentage=0.05
-         } = req.body;
-
-        // Generate terrain
-        const terrain = generateTerrain(width, height,landmarkPercentage);
-
-        // Save to DynamoDB
-        await saveTerrainToDynamoDB(playerId, playerX, playerY, terrain);
+    const { 
+      player: {
+        name = `player123`, 
+        activeQuests = [],
+        inventory = [],
+        position = { x: 0, y: 0 },
+        experience = 0,
+        gold = 0
+      },
+      sessionId = 0,
+      terrain
+     } = req.body;
+  
+      // Save to DynamoDB
+      const player = req.body.player;
+      
+      await saveTerrainToDynamoDB(player.name, player, sessionId, terrain);
 
        // Return response
        res.status(200).json({
-        message: playerId || playerX || playerY || width || height ? 'Terrain generated and saved successfully' : 'Terrain generated successfully',
-        playerX:playerX,
-        playerY:playerY,
-        terrain: terrain
+        message: player.name ? player.name+'- User Terrain data saved successfully' : 'Terrain generated successfully',
       });
     } catch (error) {
         console.error('Error generating terrain:', error);

@@ -79,7 +79,7 @@
                     "arn:aws:s3:::chronicles-ai-assests/*",
                     {
                       "Fn::GetAtt": [
-                        "GameWorldTable",
+                        "EchroniclesAIGameTable",
                         "Arn"
                       ]
                     }
@@ -136,7 +136,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-          "S3Key": "serverless/game-backend/dev/1736685367697-2025-01-12T12:36:07.697Z/game-backend.zip"
+          "S3Key": "serverless/game-backend/dev/1736836116105-2025-01-14T06:28:36.105Z/game-backend.zip"
         },
         "Handler": "index.handler",
         "Runtime": "nodejs18.x",
@@ -146,7 +146,7 @@
         "Environment": {
           "Variables": {
             "CONFIG_BUCKET_NAME": "chronicles-ai-assests",
-            "DYNAMODB_TABLE": "GameWorld",
+            "DYNAMODB_TABLE": "EchroniclesAIGame",
             "REST_API_LOGGING": "true"
           }
         },
@@ -161,14 +161,14 @@
         "AppLogGroup"
       ]
     },
-    "AppLambdaVersion3wQHxK6At60OgeDIWh0pm2TKsEHYYyZ8OUCnaBOnE": {
+    "AppLambdaVersionMx94oLbELiPAx6s8QSY7fKBzSf2xmaI8RhIlixy0": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AppLambdaFunction"
         },
-        "CodeSha256": "wQs31FKCsGvJ+7kRVH5rq1oWYcUYFcwSp+UwrScEWyM="
+        "CodeSha256": "SMEpmZiZycpE7qlAwOU769v0zvtEiRH72nFfL/b4/9Y="
       }
     },
     "ApiGatewayRestApi": {
@@ -183,7 +183,7 @@
         "Policy": ""
       }
     },
-    "ApiGatewayResourceSavesession": {
+    "ApiGatewayResourceSaveterrain": {
       "Type": "AWS::ApiGateway::Resource",
       "Properties": {
         "ParentId": {
@@ -192,13 +192,13 @@
             "RootResourceId"
           ]
         },
-        "PathPart": "savesession",
+        "PathPart": "saveTerrain",
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         }
       }
     },
-    "ApiGatewayResourceGetsessions": {
+    "ApiGatewayResourceGetsavedterrain": {
       "Type": "AWS::ApiGateway::Resource",
       "Properties": {
         "ParentId": {
@@ -207,19 +207,7 @@
             "RootResourceId"
           ]
         },
-        "PathPart": "getsessions",
-        "RestApiId": {
-          "Ref": "ApiGatewayRestApi"
-        }
-      }
-    },
-    "ApiGatewayResourceGetsessionsUsernameVar": {
-      "Type": "AWS::ApiGateway::Resource",
-      "Properties": {
-        "ParentId": {
-          "Ref": "ApiGatewayResourceGetsessions"
-        },
-        "PathPart": "{username}",
+        "PathPart": "getSavedTerrain",
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         }
@@ -270,7 +258,7 @@
         }
       }
     },
-    "ApiGatewayMethodSavesessionOptions": {
+    "ApiGatewayMethodSaveterrainOptions": {
       "Type": "AWS::ApiGateway::Method",
       "Properties": {
         "AuthorizationType": "NONE",
@@ -308,14 +296,14 @@
           ]
         },
         "ResourceId": {
-          "Ref": "ApiGatewayResourceSavesession"
+          "Ref": "ApiGatewayResourceSaveterrain"
         },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         }
       }
     },
-    "ApiGatewayMethodGetsessionsUsernameVarOptions": {
+    "ApiGatewayMethodGetsavedterrainOptions": {
       "Type": "AWS::ApiGateway::Method",
       "Properties": {
         "AuthorizationType": "NONE",
@@ -344,7 +332,7 @@
               "ResponseParameters": {
                 "method.response.header.Access-Control-Allow-Origin": "'*'",
                 "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Access-Control-Allow-Headers,Access-Control-Allow-Origin,Access-Control-Allow-Methods'",
-                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'"
+                "method.response.header.Access-Control-Allow-Methods": "'POST,OPTIONS'"
               },
               "ResponseTemplates": {
                 "application/json": ""
@@ -353,7 +341,7 @@
           ]
         },
         "ResourceId": {
-          "Ref": "ApiGatewayResourceGetsessionsUsernameVar"
+          "Ref": "ApiGatewayResourceGetsavedterrain"
         },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
@@ -523,13 +511,13 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayMethodSavesessionPost": {
+    "ApiGatewayMethodSaveterrainPost": {
       "Type": "AWS::ApiGateway::Method",
       "Properties": {
         "HttpMethod": "POST",
         "RequestParameters": {},
         "ResourceId": {
-          "Ref": "ApiGatewayResourceSavesession"
+          "Ref": "ApiGatewayResourceSaveterrain"
         },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
@@ -569,13 +557,13 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayMethodGetsessionsUsernameVarGet": {
+    "ApiGatewayMethodGetsavedterrainPost": {
       "Type": "AWS::ApiGateway::Method",
       "Properties": {
-        "HttpMethod": "GET",
+        "HttpMethod": "POST",
         "RequestParameters": {},
         "ResourceId": {
-          "Ref": "ApiGatewayResourceGetsessionsUsernameVar"
+          "Ref": "ApiGatewayResourceGetsavedterrain"
         },
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
@@ -707,7 +695,7 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1736685343523": {
+    "ApiGatewayDeployment1736836086735": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -716,13 +704,13 @@
         "StageName": "dev"
       },
       "DependsOn": [
-        "ApiGatewayMethodSavesessionOptions",
-        "ApiGatewayMethodGetsessionsUsernameVarOptions",
+        "ApiGatewayMethodSaveterrainOptions",
+        "ApiGatewayMethodGetsavedterrainOptions",
         "ApiGatewayMethodNpcDashinteractionOptions",
         "ApiGatewayMethodGenerateterrainOptions",
         "ApiGatewayMethodProxyVarOptions",
-        "ApiGatewayMethodSavesessionPost",
-        "ApiGatewayMethodGetsessionsUsernameVarGet",
+        "ApiGatewayMethodSaveterrainPost",
+        "ApiGatewayMethodGetsavedterrainPost",
         "ApiGatewayMethodNpcDashinteractionPost",
         "ApiGatewayMethodGenerateterrainPost",
         "ApiGatewayMethodProxyVarOptions"
@@ -765,19 +753,19 @@
         }
       }
     },
-    "GameWorldTable": {
+    "EchroniclesAIGameTable": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
-        "TableName": "GameWorld",
+        "TableName": "EchroniclesAIGame",
         "AttributeDefinitions": [
           {
-            "AttributeName": "PlayerID",
+            "AttributeName": "SessionID",
             "AttributeType": "S"
           }
         ],
         "KeySchema": [
           {
-            "AttributeName": "PlayerID",
+            "AttributeName": "SessionID",
             "KeyType": "HASH"
           }
         ],
@@ -882,7 +870,7 @@
                   "Resource": [
                     {
                       "Fn::GetAtt": [
-                        "GameWorldTable",
+                        "EchroniclesAIGameTable",
                         "Arn"
                       ]
                     }
@@ -905,7 +893,7 @@
     "AppLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AppLambdaVersion3wQHxK6At60OgeDIWh0pm2TKsEHYYyZ8OUCnaBOnE"
+        "Ref": "AppLambdaVersionMx94oLbELiPAx6s8QSY7fKBzSf2xmaI8RhIlixy0"
       },
       "Export": {
         "Name": "sls-game-backend-dev-AppLambdaFunctionQualifiedArn"

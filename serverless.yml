@@ -9,7 +9,7 @@ provider:
   profile: default
   environment:
     CONFIG_BUCKET_NAME: chronicles-ai-assests
-    DYNAMODB_TABLE: GameWorld
+    DYNAMODB_TABLE: EchroniclesAIGame
     REST_API_LOGGING: true  # Instead of the object
 
   # Add IAM role for CloudWatch Logs
@@ -26,7 +26,7 @@ provider:
             - s3:GetObject
           Resource: 
             - "arn:aws:s3:::chronicles-ai-assests/*"
-            - Fn::GetAtt: [GameWorldTable, Arn]
+            - Fn::GetAtt: [EchroniclesAIGameTable, Arn]
         # Add CloudWatch Logs permissions
         - Effect: Allow
           Action:
@@ -70,7 +70,7 @@ functions:
     handler: index.handler
     events:
       - http:
-          path: /savesession
+          path: /saveTerrain
           method: post
           cors:  
             origin: '*'
@@ -80,13 +80,13 @@ functions:
               - OPTIONS
             allowCredentials: false
       - http:
-          path: /getsessions/{username}
-          method: get
+          path: /getSavedTerrain
+          method: post
           cors:  
             origin: '*'
             headers: ${self:custom.allowedHeaders}
             methods:
-              - GET
+              - POST
               - OPTIONS
             allowCredentials: false
       - http:
@@ -126,15 +126,15 @@ functions:
 resources:
   Resources:
     # Your existing DynamoDB table configuration
-    GameWorldTable:
+    EchroniclesAIGameTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: GameWorld
+        TableName: EchroniclesAIGame
         AttributeDefinitions:
-          - AttributeName: PlayerID
+          - AttributeName: SessionID
             AttributeType: S
         KeySchema:
-          - AttributeName: PlayerID
+          - AttributeName: SessionID
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
     
@@ -197,4 +197,4 @@ resources:
                     - dynamodb:GetItem
                     - dynamodb:Scan
                   Resource:
-                    - Fn::GetAtt: [GameWorldTable, Arn]
+                    - Fn::GetAtt: [EchroniclesAIGameTable, Arn]
