@@ -136,7 +136,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-abc9cfa0-710b",
-          "S3Key": "serverless/game-backend/dev/1736836116105-2025-01-14T06:28:36.105Z/game-backend.zip"
+          "S3Key": "serverless/game-backend/dev/1736846872524-2025-01-14T09:27:52.524Z/game-backend.zip"
         },
         "Handler": "index.handler",
         "Runtime": "nodejs18.x",
@@ -695,7 +695,7 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1736836086735": {
+    "ApiGatewayDeployment1736846844929": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
